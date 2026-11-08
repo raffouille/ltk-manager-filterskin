@@ -11,12 +11,14 @@ use crate::mods::ModLibraryState;
 use crate::patcher::PatcherState;
 use crate::settings_backup;
 use crate::state::{persist_settings, LaunchMode, Settings, SettingsState};
+use ltk_manager_assets::strings::StringKeyIndexState;
 use ltk_manager_base::config::{CharacterInking, Config};
 use ltk_manager_base::events::{BackendEvent, DataMoveProgress, DataMoveStage, EventSink as _};
 use ltk_manager_base::utils::game::GameDir;
 use ltk_manager_library::overlay::{
-    forcible_map_skins, inking_maps, map_decorations, outline_values, write_inking_preview,
-    ForcibleMapSkin, InkingMap, InkingOutline, InkingPreview, InkingSide, MapDecoration,
+    champion_skins, forcible_map_skins, inking_maps, map_decorations, outline_values,
+    write_inking_preview, ForcibleMapSkin, InkingMap, InkingOutline, InkingPreview, InkingSide,
+    MapDecoration,
 };
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -334,6 +336,44 @@ pub fn list_available_wads(state: State<SettingsState>) -> IpcResult<Vec<String>
 fn list_available_wads_inner(state: &State<SettingsState>) -> AppResult<Vec<String>> {
     let config = state.config();
     GameDir::resolve(&config)?.wads()
+}
+
+/// One skin past the base of a champion, as the kept skins picker lists it.
+#[derive(Debug, Clone, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ChampionSkin {
+    /// The lowercased champion, as the champion archives are named.
+    pub champion: String,
+    /// The skin id, which the `keptSkins` setting stores.
+    pub id: u32,
+    /// Its name in the game's string table, in the game's locale.
+    pub name: Option<String>,
+}
+
+/// Every skin past the base of every champion in the configured install.
+#[tauri::command]
+#[specta::specta]
+pub async fn list_champion_skins(app_handle: AppHandle) -> IpcResult<Vec<ChampionSkin>> {
+    off_thread(move || {
+        let config = app_handle.state::<SettingsState>().config();
+        let skins = champion_skins(&GameDir::resolve(&config)?)?;
+        let index = app_handle
+            .state::<StringKeyIndexState>()
+            .get_or_build(&config);
+
+        Ok(skins
+            .into_iter()
+            .flat_map(|(champion, ids)| ids.into_iter().map(move |id| (champion.clone(), id)))
+            .map(|(champion, id)| ChampionSkin {
+                name: index
+                    .text(&format!("game_character_skin_displayname_{champion}_{id}"))
+                    .map(str::to_owned),
+                champion,
+                id,
+            })
+            .collect())
+    })
+    .await
 }
 
 /// Every map skin the configured install can show in place of the one a server names.

@@ -136,6 +136,7 @@ export const api = {
   detectLeagueRunAsAdmin: settings.detectLeagueRunAsAdmin,
   listAvailableWads: settings.listAvailableWads,
   listForcibleMapSkins: settings.listForcibleMapSkins,
+  listChampionSkins: settings.listChampionSkins,
   listMapDecorations: settings.listMapDecorations,
   listInkingMaps: settings.listInkingMaps,
   prepareInkingPreview: settings.prepareInkingPreview,

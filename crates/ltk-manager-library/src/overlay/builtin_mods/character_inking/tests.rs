@@ -433,7 +433,7 @@ fn modded_champions_outline_a_reskinned_champion_with_the_mod_s_mesh() {
 fn a_stand_in_skin_takes_the_base_skin_s_submeshes() {
     let game = game();
     let mut settings = on(InkingScope::Chosen);
-    settings.base_skins = BaseSkinsScope::AllChampions;
+    settings.base_skins = ltk_manager_base::config::BaseSkinsScope::AllChampions;
     settings.character_inking.chosen_champions = BTreeSet::from(["ahri".to_owned()]);
 
     let overrides = generate(&settings, game.path(), &mut []);

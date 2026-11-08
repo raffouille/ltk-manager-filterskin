@@ -31,7 +31,7 @@ use map_decorations::MapDecorations;
 use map_skins::MapSkins;
 use overrides::Overrides;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use ward_skins::DefaultWardSkins;
@@ -141,7 +141,7 @@ fn enabled(settings: &BuiltinModSettings) -> Vec<Box<dyn BuiltinMod>> {
     if settings.default_ward_skins {
         enabled.push(Box::new(DefaultWardSkins));
     }
-    if let Some(base_skins) = BaseSkins::of(settings.base_skins) {
+    if let Some(base_skins) = BaseSkins::of(settings) {
         enabled.push(Box::new(base_skins));
     }
     if let Some(character_inking) = CharacterInking::of(settings) {
@@ -203,6 +203,28 @@ pub fn map_decorations(game_dir: &GameDir) -> AppResult<Vec<MapDecoration>> {
         }
     }
     Ok(by_key.into_values().collect())
+}
+
+/// Every skin id past the base that the champion archives in `game_dir` hold for each champion,
+/// by lowercased champion, in id order.
+///
+/// # Errors
+///
+/// Fails when the champions directory cannot be listed.
+pub fn champion_skins(game_dir: &GameDir) -> AppResult<BTreeMap<String, Vec<u32>>> {
+    let game = GameSkins::champions(game_dir, &character_inking::NoTables)?;
+    Ok(game
+        .roster()
+        .iter()
+        .map(|champion| {
+            let ids: BTreeSet<u32> = game
+                .past_base_of(champion)
+                .into_iter()
+                .map(|(_, bin)| bin.id)
+                .collect();
+            (champion.clone(), ids.into_iter().collect())
+        })
+        .collect())
 }
 
 /// Every skin other than `Default` that a map in `game_dir` links and holds the geometry and

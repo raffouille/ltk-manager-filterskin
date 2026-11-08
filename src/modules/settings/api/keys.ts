@@ -9,6 +9,8 @@ export const settingsKeys = {
   availableWads: () => [...settingsKeys.all, "availableWads"] as const,
   forcibleMapSkins: (leaguePath: string) =>
     [...settingsKeys.all, "forcibleMapSkins", leaguePath] as const,
+  championSkins: (leaguePath: string) =>
+    [...settingsKeys.all, "championSkins", leaguePath] as const,
   mapDecorations: (leaguePath: string) =>
     [...settingsKeys.all, "mapDecorations", leaguePath] as const,
   inkingMaps: (leaguePath: string) => [...settingsKeys.all, "inkingMaps", leaguePath] as const,

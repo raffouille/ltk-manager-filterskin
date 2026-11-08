@@ -4,7 +4,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import type { ForcibleMapSkin, MapDecoration, Settings } from "@/lib/tauri";
+import type { ChampionSkin, ForcibleMapSkin, MapDecoration, Settings } from "@/lib/tauri";
 import { commandNames } from "@/test/commandNames";
 
 import { BuiltinModsSection } from "../BuiltinModsSection";
@@ -150,6 +150,46 @@ describe("BuiltinModsSection map decorations", () => {
       expect(savedSettings()).toEqual({
         ...settings,
         builtinMods: { ...settings.builtinMods, mapDecorations: { MSITrophy: "show" } },
+      }),
+    );
+  });
+});
+
+describe("BuiltinModsSection kept skins", () => {
+  const CHAMPION_SKINS: ChampionSkin[] = [
+    { champion: "ahri", id: 7, name: "Arcade Ahri" },
+    { champion: "kaisa", id: 1, name: "Bullet Angel Kai'Sa" },
+  ];
+
+  function withBaseSkins(baseSkins: Settings["builtinMods"]["baseSkins"]): Settings {
+    const settings = withMapSkin("game");
+    return { ...settings, builtinMods: { ...settings.builtinMods, baseSkins, keptSkins: {} } };
+  }
+
+  function renderKeptSkins(settings: Settings) {
+    renderSettings(<BuiltinModsSection />, {
+      settings,
+      answers: { [commandNames.settings.listChampionSkins]: CHAMPION_SKINS },
+    });
+  }
+
+  it("offers kept skins only while base skins is on", () => {
+    renderKeptSkins(withBaseSkins("off"));
+
+    expect(screen.queryByRole("combobox", { name: "Kept skins" })).not.toBeInTheDocument();
+  });
+
+  it("saves the skin the reader finds by name", async () => {
+    const settings = withBaseSkins("allChampions");
+    renderKeptSkins(settings);
+
+    await userEvent.type(screen.getByRole("combobox", { name: "Kept skins" }), "angel");
+    await userEvent.click(await screen.findByRole("option", { name: /Bullet Angel/ }));
+
+    await waitFor(() =>
+      expect(savedSettings()).toEqual({
+        ...settings,
+        builtinMods: { ...settings.builtinMods, keptSkins: { kaisa: [1] } },
       }),
     );
   });

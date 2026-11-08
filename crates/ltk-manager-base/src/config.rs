@@ -187,6 +187,9 @@ pub struct BuiltinModSettings {
     pub default_ward_skins: bool,
     /// Which champions show their base skin on every skin.
     pub base_skins: BaseSkinsScope,
+    /// The skin ids that base skins leaves unchanged, by lowercased champion, as the champion
+    /// archives are named.
+    pub kept_skins: BTreeMap<String, BTreeSet<u32>>,
     /// Which map skin every game shows.
     pub map_skin: MapSkinMode,
     /// The `name` of the map skin [`MapSkinMode::Forced`] shows, kept while another mode is on.

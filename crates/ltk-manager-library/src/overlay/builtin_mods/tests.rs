@@ -766,7 +766,10 @@ fn base_skins(
     mods: &mut [EnabledMod],
 ) -> Vec<(String, Vec<u8>)> {
     files(&generate(
-        &BaseSkins { champions },
+        &BaseSkins {
+            champions,
+            kept: BTreeSet::new(),
+        },
         game,
         cache_dir,
         tables,
@@ -1429,4 +1432,65 @@ fn a_base_model_file_is_a_mesh_or_texture_directly_in_the_base_skin_folder() {
         None
     );
     assert_eq!(character(&skin("tristana", 0)), None);
+}
+
+#[test]
+fn base_skins_leave_a_kept_skin_and_the_companion_skin_of_its_id() {
+    let game = tempfile::tempdir().unwrap();
+    build_wad(
+        &champions_dir(game.path()).join("Annie.wad.client"),
+        &[
+            &skin("annie", 0),
+            &skin("annie", 1),
+            &skin("annie", 2),
+            &skin("annietibbers", 0),
+            &skin("annietibbers", 1),
+            &skin("annietibbers", 2),
+        ],
+    );
+    let tables = Tables::naming(&[
+        skin("annietibbers", 0),
+        skin("annietibbers", 1),
+        skin("annietibbers", 2),
+    ]);
+    let builtin = tempfile::tempdir().unwrap();
+    let settings = BuiltinModSettings {
+        base_skins: ltk_manager_base::config::BaseSkinsScope::AllChampions,
+        kept_skins: BTreeMap::from([("annie".to_owned(), BTreeSet::from([2]))]),
+        ..BuiltinModSettings::default()
+    };
+
+    let files = files(&generate(
+        &BaseSkins::of(&settings).unwrap(),
+        game.path(),
+        builtin.path(),
+        &tables,
+        &mut [],
+    ));
+
+    assert_eq!(
+        stand_ins(&files),
+        [
+            stand_in("Annie.wad.client", &skin("annie", 1), GAME),
+            stand_in("Annie.wad.client", &skin("annietibbers", 1), GAME),
+        ]
+    );
+}
+
+#[test]
+fn champion_skins_list_each_skin_id_past_the_base_by_champion() {
+    let game = tempfile::tempdir().unwrap();
+    build_wad(
+        &champions_dir(game.path()).join("MonkeyKing.wad.client"),
+        &[
+            &skin("monkeyking", 0),
+            &skin("monkeyking", 7),
+            &skin("monkeyking", 1),
+        ],
+    );
+
+    assert_eq!(
+        champion_skins(&GameDir::from_path(game.path())).unwrap(),
+        BTreeMap::from([("monkeyking".to_owned(), vec![1, 7])])
+    );
 }

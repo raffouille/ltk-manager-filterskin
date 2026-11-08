@@ -4,6 +4,7 @@ import {
   api,
   type AppError,
   type AppInfo,
+  type ChampionSkin,
   type CharacterInking,
   type DataUsage,
   type ForcibleMapSkin,
@@ -109,6 +110,17 @@ export const leagueInstallQueries = {
     queryOptions<ForcibleMapSkin[], AppError>({
       queryKey: settingsKeys.forcibleMapSkins(leaguePath ?? ""),
       queryFn: queryFn(api.listForcibleMapSkins),
+      enabled: !!leaguePath,
+      staleTime: 60 * 60 * 1000,
+      retry: false,
+    }),
+
+  /* The skins change only with a patch, so they stay fresh for an hour, keyed on the path they
+     were read from. */
+  championSkins: (leaguePath: string | null | undefined) =>
+    queryOptions<ChampionSkin[], AppError>({
+      queryKey: settingsKeys.championSkins(leaguePath ?? ""),
+      queryFn: queryFn(api.listChampionSkins),
       enabled: !!leaguePath,
       staleTime: 60 * 60 * 1000,
       retry: false,

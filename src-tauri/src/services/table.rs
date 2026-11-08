@@ -234,6 +234,7 @@ services! {
         detect_league_run_as_admin,
         list_available_wads,
         list_forcible_map_skins,
+        list_champion_skins,
         list_map_decorations,
         list_inking_maps,
         prepare_inking_preview,

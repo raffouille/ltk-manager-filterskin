@@ -217,9 +217,14 @@ fn load_game_stringtable(config: &Config) -> Option<(String, ltk_rst::Stringtabl
     let wad_path = game_dir.localized_global_wad(&locale)?;
     let mut wad = mount_wad(&wad_path).ok()?;
 
-    let chunk_path = format!("data/menu/{locale}/lol.stringtable");
-    let chunk_hash = ltk_modpkg::ChunkPath::new(&chunk_path).hash().value();
-    let bytes = chunk_bytes(&mut wad, ltk_wad::WadHash(chunk_hash)).ok()??;
+    // A localized archive such as `Global.fr_FR.wad.client` holds its translated table under
+    // `en_us`, so the locale's own folder is tried first and `en_us` second.
+    let (chunk_path, bytes) = [locale.as_str(), "en_us"].iter().find_map(|folder| {
+        let chunk_path = format!("data/menu/{folder}/lol.stringtable");
+        let chunk_hash = ltk_modpkg::ChunkPath::new(&chunk_path).hash().value();
+        let bytes = chunk_bytes(&mut wad, ltk_wad::WadHash(chunk_hash)).ok()??;
+        Some((chunk_path, bytes))
+    })?;
 
     match ltk_rst::Stringtable::from_reader(&mut Cursor::new(&bytes[..])) {
         Ok(table) => Some((locale, table)),

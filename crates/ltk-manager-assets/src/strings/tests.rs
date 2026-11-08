@@ -118,3 +118,40 @@ fn table_keys_index_without_a_game_to_read_values_from() {
 fn key_hash(key: &str) -> u64 {
     crate::hashtables::Table::RstXxh3.key_config().hash(key)
 }
+
+#[test]
+fn load_game_stringtable_reads_a_localized_table_under_en_us() {
+    let root = tempfile::tempdir().unwrap();
+    let wad_path = root
+        .path()
+        .join("Game/DATA/FINAL/Localized/Global.fr_FR.wad.client");
+    fs_err::create_dir_all(wad_path.parent().unwrap()).unwrap();
+
+    let mut table = ltk_rst::Stringtable::new();
+    table.insert_str("game_character_skin_displayname_ashe_46", "Ashe émeraude");
+    let mut bytes = Vec::new();
+    table.to_writer(&mut bytes).unwrap();
+
+    let chunk = "data/menu/en_us/lol.stringtable";
+    let mut file = fs_err::File::create(&wad_path).unwrap();
+    ltk_wad::WadBuilder::default()
+        .with_chunk(ltk_wad::WadChunkBuilder::default().with_path(chunk))
+        .build_to_writer(&mut file, |_, cursor| {
+            std::io::Write::write_all(cursor, &bytes)?;
+            Ok(())
+        })
+        .unwrap();
+    drop(file);
+
+    let config = Config {
+        league_path: Some(root.path().to_path_buf()),
+        ..Config::default()
+    };
+    let (locale, table) = load_game_stringtable(&config).unwrap();
+
+    assert_eq!(locale, "fr_fr");
+    assert_eq!(
+        table.get_key("game_character_skin_displayname_ashe_46"),
+        Some("Ashe émeraude")
+    );
+}

@@ -15,7 +15,7 @@ pub use build::{OverlayBuildInputs, OverlayBuildOutcome, build_overlay};
 pub use builtin_mods::{
     BuiltinTiming, ForcibleMapSkin, InkingMap, InkingOutline, InkingPreview, InkingSide,
     MapDecoration, Regenerate, champion_skins, forcible_map_skins, inking_maps, map_decorations,
-    outline_values, write_inking_preview,
+    outline_values, skin_parents, write_inking_preview,
 };
 pub(crate) use resolve::{resolve_blocked_wads, resolve_string_override_mode};
 

@@ -74,6 +74,17 @@ impl BaseSkin {
 
 const RESOURCES: &str = "/Resources";
 
+/// The skin number that the skin `id` of `character` is a chroma of, read from `skinParent` in
+/// the bytes of its skin bin. Returns `None` if the bin does not read or names no parent.
+pub(super) fn skin_parent(character: &str, id: u32, bytes: &[u8]) -> Option<u32> {
+    let bin = Bin::from_reader(&mut Cursor::new(bytes)).ok()?;
+    let object = bin.objects.get(&object_hash(character, id, ""))?;
+    match object.properties.get(&BinHash::from("skinParent"))? {
+        PropertyValueEnum::I32(parent) => u32::try_from(parent.value).ok(),
+        _ => None,
+    }
+}
+
 /// `Characters/<character>/Skins/Skin<id><suffix>`.
 fn object_hash(character: &str, id: u32, suffix: &str) -> BinHash {
     BinHash::from(format!("Characters/{character}/Skins/Skin{id}{suffix}").as_str())

@@ -39,7 +39,11 @@ export const commands = {
 	listAvailableWads: () => __TAURI_INVOKE<({ ok: true; value: string[] }) & { error?: never } | ({ ok: false; error: AppErrorResponse }) & { value?: never }>("plugin:settings|list_available_wads"),
 	/**  Every map skin the configured install can show in place of the one a server names. */
 	listForcibleMapSkins: () => __TAURI_INVOKE<({ ok: true; value: ForcibleMapSkin[] }) & { error?: never } | ({ ok: false; error: AppErrorResponse }) & { value?: never }>("plugin:settings|list_forcible_map_skins"),
-	/**  Every skin past the base of every champion in the configured install. */
+	/**
+	 *  Every skin past the base of every champion in the configured install.
+	 * 
+	 *  A chroma the string table does not name takes the name of the skin it is a chroma of.
+	 */
 	listChampionSkins: () => __TAURI_INVOKE<({ ok: true; value: ChampionSkin[] }) & { error?: never } | ({ ok: false; error: AppErrorResponse }) & { value?: never }>("plugin:settings|list_champion_skins"),
 	/**  Every map decoration a mutator switches in the configured install. */
 	listMapDecorations: () => __TAURI_INVOKE<({ ok: true; value: MapDecoration[] }) & { error?: never } | ({ ok: false; error: AppErrorResponse }) & { value?: never }>("plugin:settings|list_map_decorations"),

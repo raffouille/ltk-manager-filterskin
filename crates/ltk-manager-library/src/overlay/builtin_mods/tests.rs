@@ -1494,3 +1494,26 @@ fn champion_skins_list_each_skin_id_past_the_base_by_champion() {
         BTreeMap::from([("monkeyking".to_owned(), vec![1, 7])])
     );
 }
+
+#[test]
+fn skin_parent_reads_the_skin_a_chroma_belongs_to() {
+    let chroma = BinObject::builder(
+        object("Ashe", 46, ""),
+        BinHash::from("SkinCharacterDataProperties"),
+    )
+    .property(BinHash::from("skinParent"), values::I32::new(43))
+    .build();
+    let mut bin = Bin::default();
+    bin.objects.insert(chroma.path_hash, chroma);
+    let mut bytes = std::io::Cursor::new(Vec::new());
+    bin.to_writer(&mut bytes).unwrap();
+
+    assert_eq!(
+        super::stand_in::skin_parent("ashe", 46, bytes.get_ref()),
+        Some(43)
+    );
+    assert_eq!(
+        super::stand_in::skin_parent("ashe", 47, bytes.get_ref()),
+        None
+    );
+}

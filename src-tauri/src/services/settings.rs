@@ -16,7 +16,7 @@ use ltk_manager_base::config::{CharacterInking, Config};
 use ltk_manager_base::events::{BackendEvent, DataMoveProgress, DataMoveStage, EventSink as _};
 use ltk_manager_base::utils::game::GameDir;
 use ltk_manager_library::overlay::{
-    champion_skins, forcible_map_skins, inking_maps, map_decorations, outline_values,
+    champion_skins, forcible_map_skins, inking_maps, map_decorations, outline_values, skin_parents,
     write_inking_preview, ForcibleMapSkin, InkingMap, InkingOutline, InkingPreview, InkingSide,
     MapDecoration,
 };
@@ -351,17 +351,18 @@ pub struct ChampionSkin {
 }
 
 /// Every skin past the base of every champion in the configured install.
+///
+/// A chroma the string table does not name takes the name of the skin it is a chroma of.
 #[tauri::command]
 #[specta::specta]
 pub async fn list_champion_skins(app_handle: AppHandle) -> IpcResult<Vec<ChampionSkin>> {
     off_thread(move || {
         let config = app_handle.state::<SettingsState>().config();
-        let skins = champion_skins(&GameDir::resolve(&config)?)?;
+        let game_dir = GameDir::resolve(&config)?;
         let index = app_handle
             .state::<StringKeyIndexState>()
             .get_or_build(&config);
-
-        Ok(skins
+        let mut skins: Vec<ChampionSkin> = champion_skins(&game_dir)?
             .into_iter()
             .flat_map(|(champion, ids)| ids.into_iter().map(move |id| (champion.clone(), id)))
             .map(|(champion, id)| ChampionSkin {
@@ -371,7 +372,25 @@ pub async fn list_champion_skins(app_handle: AppHandle) -> IpcResult<Vec<Champio
                 champion,
                 id,
             })
-            .collect())
+            .collect();
+
+        let unnamed: Vec<(String, u32)> = skins
+            .iter()
+            .filter(|skin| skin.name.is_none())
+            .map(|skin| (skin.champion.clone(), skin.id))
+            .collect();
+        let parents = skin_parents(&game_dir, &unnamed)?;
+        let names: std::collections::HashMap<(String, u32), String> = skins
+            .iter()
+            .filter_map(|skin| Some(((skin.champion.clone(), skin.id), skin.name.clone()?)))
+            .collect();
+        for skin in skins.iter_mut().filter(|skin| skin.name.is_none()) {
+            skin.name = parents
+                .get(&(skin.champion.clone(), skin.id))
+                .and_then(|parent| names.get(&(skin.champion.clone(), *parent)))
+                .map(|parent| format!("{parent} (chroma {})", skin.id));
+        }
+        Ok(skins)
     })
     .await
 }

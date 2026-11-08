@@ -227,6 +227,28 @@ pub fn champion_skins(game_dir: &GameDir) -> AppResult<BTreeMap<String, Vec<u32>
         .collect())
 }
 
+/// The skin number that each of `skins` is a chroma of, by lowercased champion and skin id.
+///
+/// Reads `skinParent` out of each skin bin. A skin whose bin names no parent is absent.
+///
+/// # Errors
+///
+/// Fails when the champions directory cannot be listed.
+pub fn skin_parents(
+    game_dir: &GameDir,
+    skins: &[(String, u32)],
+) -> AppResult<BTreeMap<(String, u32), u32>> {
+    let mut game = GameSkins::champions(game_dir, &character_inking::NoTables)?;
+    Ok(skins
+        .iter()
+        .filter_map(|(champion, id)| {
+            let bytes = game.read(&skin_bin::SkinBin::new(champion, *id))?;
+            let parent = stand_in::skin_parent(champion, *id, &bytes)?;
+            Some(((champion.clone(), *id), parent))
+        })
+        .collect())
+}
+
 /// Every skin other than `Default` that a map in `game_dir` links and holds the geometry and
 /// materials of, by name.
 ///

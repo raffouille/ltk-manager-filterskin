@@ -214,17 +214,34 @@ fn load_game_stringtable(config: &Config) -> Option<(String, ltk_rst::Stringtabl
     };
     let locale = game_dir.locale().unwrap_or_else(|| "en_us".into());
 
-    let wad_path = game_dir.localized_global_wad(&locale)?;
-    let mut wad = mount_wad(&wad_path).ok()?;
+    let Some(wad_path) = game_dir.localized_global_wad(&locale) else {
+        tracing::warn!(
+            "String index: no Global.{locale}.wad.client in {}",
+            game_dir.path().join("DATA/FINAL/Localized").display()
+        );
+        return None;
+    };
+    let mut wad = mount_wad(&wad_path)
+        .inspect_err(|e| tracing::warn!("String index: cannot mount {}: {e}", wad_path.display()))
+        .ok()?;
 
     // A localized archive such as `Global.fr_FR.wad.client` holds its translated table under
     // `en_us`, so the locale's own folder is tried first and `en_us` second.
-    let (chunk_path, bytes) = [locale.as_str(), "en_us"].iter().find_map(|folder| {
+    let found = [locale.as_str(), "en_us"].iter().find_map(|folder| {
         let chunk_path = format!("data/menu/{folder}/lol.stringtable");
         let chunk_hash = ltk_modpkg::ChunkPath::new(&chunk_path).hash().value();
-        let bytes = chunk_bytes(&mut wad, ltk_wad::WadHash(chunk_hash)).ok()??;
+        let bytes = chunk_bytes(&mut wad, ltk_wad::WadHash(chunk_hash))
+            .inspect_err(|e| tracing::warn!("String index: cannot read {chunk_path}: {e}"))
+            .ok()??;
         Some((chunk_path, bytes))
-    })?;
+    });
+    let Some((chunk_path, bytes)) = found else {
+        tracing::warn!(
+            "String index: {} holds no lol.stringtable under data/menu/{locale} or data/menu/en_us",
+            wad_path.display()
+        );
+        return None;
+    };
 
     match ltk_rst::Stringtable::from_reader(&mut Cursor::new(&bytes[..])) {
         Ok(table) => Some((locale, table)),

@@ -593,7 +593,9 @@ impl PatcherDelivery {
 /// beside it.
 fn stage_host(dir: &Path, bundled_host: &Path) -> std::io::Result<()> {
     let staged = dir.join(HOST_EXE_NAME);
-    if staged.exists() && sha256_file(&staged)? == sha256_file(bundled_host)? {
+    // This fork's host is unsigned and a delivered DLL refuses an unsigned host, so the signed
+    // host that an official build staged beside the DLL stays.
+    if staged.exists() {
         return Ok(());
     }
 
